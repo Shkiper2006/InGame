@@ -8,6 +8,15 @@
 </head>
 <body>
   <main class="container">
+    <div class="nav-controls" data-quest-id="<%= quest.id %>" data-root-location-id="<%= quest.root_location_id %>" data-current-location-id="<%= currentLocation.id %>">
+      <button type="button" class="js-step-back">На шаг назад</button>
+      <button type="button" class="js-restart">Начать заново</button>
+    </div>
+    <p class="hint-text" id="nav-hint" <% if (!navMessage) { %>hidden<% } %>>
+      <% if (navMessage === 'invalid-history-location') { %>
+        Локация из истории недоступна. Вы перемещены в актуальную точку квеста.
+      <% } %>
+    </p>
     <h1><%= quest.title %></h1>
     <p><strong>Кратко:</strong> <%= quest.short_description %></p>
     <p><strong>Событие:</strong> <%= currentLocation.event_text %></p>
@@ -36,6 +45,66 @@
     <p><a href="/quests">← Назад к списку</a></p>
   </main>
   <script>
+    (function setupLocationNavigation() {
+      const container = document.querySelector('.nav-controls');
+      if (!container) return;
+      const questId = Number(container.dataset.questId);
+      const rootLocationId = Number(container.dataset.rootLocationId);
+      const currentLocationId = Number(container.dataset.currentLocationId);
+      const historyKey = `quest-nav-history:${questId}`;
+      const hint = document.getElementById('nav-hint');
+      const stepBackButton = container.querySelector('.js-step-back');
+      const restartButton = container.querySelector('.js-restart');
+
+      function showHint(text) {
+        if (!hint) return;
+        hint.hidden = false;
+        hint.textContent = text;
+      }
+
+      function readHistory() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(historyKey) || '[]');
+          return Array.isArray(parsed) ? parsed.filter((id) => Number.isInteger(id)) : [];
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function writeHistory(history) {
+        localStorage.setItem(historyKey, JSON.stringify(history.slice(-100)));
+      }
+
+      const history = readHistory();
+      const lastKnown = history[history.length - 1];
+      if (lastKnown !== currentLocationId) {
+        history.push(currentLocationId);
+        writeHistory(history);
+      }
+      const canStepBack = history.length > 1;
+      stepBackButton.disabled = !canStepBack;
+      stepBackButton.title = canStepBack ? '' : 'Нет предыдущего шага в истории.';
+
+      stepBackButton.addEventListener('click', () => {
+        const localHistory = readHistory();
+        if (localHistory.length <= 1) {
+          showHint('Предыдущий шаг отсутствует.');
+          stepBackButton.disabled = true;
+          return;
+        }
+        localHistory.pop();
+        const previousLocationId = localHistory[localHistory.length - 1];
+        writeHistory(localHistory);
+        window.location.href = `/quests/${questId}?locationId=${previousLocationId}`;
+      });
+
+      restartButton.addEventListener('click', () => {
+        writeHistory([rootLocationId]);
+        showHint('Квест начат заново с корневой локации.');
+        window.location.href = `/quests/${questId}?locationId=${rootLocationId}`;
+      });
+    })();
+
     (function setupQuestUpdatesPolling() {
       const questId = <%= Number(quest.id) %>;
       let latestKnown = '<%= treeUpdatedAt %>';

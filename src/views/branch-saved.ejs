@@ -8,11 +8,56 @@
 </head>
 <body>
   <main class="container">
+    <div class="nav-controls" data-quest-id="<%= questId %>" data-current-location-id="<%= locationId %>">
+      <button type="button" class="js-step-back">На шаг назад</button>
+      <button type="button" class="js-restart">Начать заново</button>
+    </div>
+    <p class="hint-text" id="nav-hint" hidden></p>
     <h1>Вариант записан и включен в цепочку сюжета.</h1>
     <form method="get" action="/quests/<%= questId %>">
       <input type="hidden" name="locationId" value="<%= locationId %>" />
       <button type="submit">Посмотреть</button>
     </form>
   </main>
+  <script>
+    (function setupSavedScreenNavigation() {
+      const container = document.querySelector('.nav-controls');
+      if (!container) return;
+      const questId = Number(container.dataset.questId);
+      const historyKey = `quest-nav-history:${questId}`;
+      const hint = document.getElementById('nav-hint');
+      const stepBackButton = container.querySelector('.js-step-back');
+      const restartButton = container.querySelector('.js-restart');
+
+      function showHint(text) {
+        if (!hint) return;
+        hint.hidden = false;
+        hint.textContent = text;
+      }
+      function readHistory() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(historyKey) || '[]');
+          return Array.isArray(parsed) ? parsed.filter((id) => Number.isInteger(id)) : [];
+        } catch (e) {
+          return [];
+        }
+      }
+
+      stepBackButton.addEventListener('click', () => {
+        const history = readHistory();
+        if (history.length <= 1) {
+          showHint('Предыдущий шаг отсутствует.');
+          return;
+        }
+        history.pop();
+        localStorage.setItem(historyKey, JSON.stringify(history));
+        window.location.href = `/quests/${questId}?locationId=${history[history.length - 1]}`;
+      });
+      restartButton.addEventListener('click', () => {
+        localStorage.removeItem(historyKey);
+        window.location.href = `/quests/${questId}`;
+      });
+    })();
+  </script>
 </body>
 </html>
