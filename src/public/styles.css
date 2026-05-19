@@ -12,3 +12,6 @@ a[aria-disabled="true"], button:disabled { background: #94a3b8; cursor: not-allo
 input, textarea { width: 100%; box-sizing: border-box; margin-top: 6px; padding: 8px; }
 .nav-controls { display: flex; gap: 12px; margin-bottom: 10px; }
 .hint-text { color: #92400e; background: #fef3c7; padding: 10px 12px; border-radius: 8px; margin: 0 0 12px; }
+.info-block { background: #fff; border-radius: 10px; padding: 16px; margin: 16px 0; }
+ol { margin: 8px 0 0 20px; padding: 0; }
+ol li { margin-bottom: 8px; }

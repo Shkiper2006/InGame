@@ -1,4 +1,5 @@
 const path = require('path');
+const { welcomeText } = require('./content/ui-text');
 const express = require('express');
 const { all, get, run, initDb, withTransaction } = require('./db/database');
 
@@ -75,7 +76,7 @@ function requireQuestWriteAccess(req, res, next) {
 }
 
 app.get('/', (req, res) => {
-  res.render('welcome');
+  res.render('welcome', { welcomeText });
 });
 
 app.get('/quests', async (req, res, next) => {

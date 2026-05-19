@@ -8,14 +8,26 @@
 </head>
 <body>
   <main class="container">
-    <h1>Добро пожаловать в InGame</h1>
-    <p>
-      Здесь можно придумывать свои приключения, выбирать действия героя и проходить квест шаг за шагом.
-      Всё просто: создайте историю и сразу начните играть.
-    </p>
+    <h1><%= welcomeText.title %></h1>
+    <p><%= welcomeText.intro %></p>
+
+    <section class="info-block">
+      <h2><%= welcomeText.howToTitle %></h2>
+      <ol>
+        <% welcomeText.howToSteps.forEach((step) => { %>
+          <li><%= step %></li>
+        <% }) %>
+      </ol>
+    </section>
+
+    <section class="info-block">
+      <h2><%= welcomeText.createFromScratchTitle %></h2>
+      <p><%= welcomeText.createFromScratchDescription %></p>
+    </section>
+
     <nav class="links">
-      <a href="/quests">Смотреть квесты</a>
-      <a href="/quests/new">Создать новый квест</a>
+      <a href="/quests"><%= welcomeText.links.quests %></a>
+      <a href="/quests/new"><%= welcomeText.links.newQuest %></a>
     </nav>
   </main>
 </body>
