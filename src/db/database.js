@@ -31,6 +31,34 @@ function all(sql, params = []) {
   });
 }
 
+function begin(mode = 'DEFERRED') {
+  return run(`BEGIN ${mode} TRANSACTION`);
+}
+
+function commit() {
+  return run('COMMIT');
+}
+
+function rollback() {
+  return run('ROLLBACK');
+}
+
+async function withTransaction(work, mode = 'IMMEDIATE') {
+  await begin(mode);
+  try {
+    const result = await work();
+    await commit();
+    return result;
+  } catch (error) {
+    try {
+      await rollback();
+    } catch (rollbackError) {
+      // ignore rollback errors to preserve the original exception
+    }
+    throw error;
+  }
+}
+
 async function initDb() {
   await run('PRAGMA foreign_keys = ON');
 
@@ -80,6 +108,7 @@ async function initDb() {
   await run('CREATE INDEX IF NOT EXISTS idx_location_nodes_quest_id ON location_nodes (quest_id)');
   await run('CREATE INDEX IF NOT EXISTS idx_location_nodes_parent_location_id ON location_nodes (parent_location_id)');
   await run('CREATE INDEX IF NOT EXISTS idx_location_nodes_created_at ON location_nodes (created_at)');
+  await run('CREATE UNIQUE INDEX IF NOT EXISTS idx_action_options_location_action_text_unique ON action_options (location_node_id, action_text)');
 
   const countRow = await get('SELECT COUNT(*) as count FROM quests');
   if (countRow.count === 0) {
@@ -109,4 +138,4 @@ async function initDb() {
   }
 }
 
-module.exports = { db, run, get, all, initDb };
+module.exports = { db, run, get, all, initDb, withTransaction };

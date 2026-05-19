@@ -16,6 +16,8 @@
     <% } %>
     <p><strong>Автор локации:</strong> <%= currentLocation.author %></p>
     <p><strong>Создано:</strong> <%= currentLocation.created_at %></p>
+    <p><strong>Узлов в дереве:</strong> <%= treeNodes.length %>, <strong>действий:</strong> <%= treeActions.length %></p>
+    <p id="updates-banner" hidden>Появились новые продолжения. Страница будет обновлена…</p>
 
     <h2>Что сделать дальше?</h2>
     <div class="actions">
@@ -33,5 +35,33 @@
 
     <p><a href="/quests">← Назад к списку</a></p>
   </main>
+  <script>
+    (function setupQuestUpdatesPolling() {
+      const questId = <%= Number(quest.id) %>;
+      let latestKnown = '<%= treeUpdatedAt %>';
+      const banner = document.getElementById('updates-banner');
+
+      async function checkUpdates() {
+        try {
+          const response = await fetch(`/quests/${questId}/updates?since=${encodeURIComponent(latestKnown)}`, {
+            headers: { 'Accept': 'application/json' }
+          });
+          if (!response.ok) return;
+          const payload = await response.json();
+          if (payload && payload.latestCreatedAt) {
+            latestKnown = payload.latestCreatedAt;
+          }
+          if (payload && payload.hasUpdates) {
+            if (banner) banner.hidden = false;
+            window.location.reload();
+          }
+        } catch (error) {
+          // silent retry by the next polling iteration
+        }
+      }
+
+      setInterval(checkUpdates, 5000);
+    })();
+  </script>
 </body>
 </html>
