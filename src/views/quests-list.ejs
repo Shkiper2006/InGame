@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InGame — Список квестов</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Список квестов</h1>
+    <p><a href="/">На главную</a> · <a href="/quests/new">Создать квест</a></p>
+
+    <section class="cards">
+      <% quests.forEach((quest) => { %>
+        <article class="card">
+          <img src="<%= quest.image_url %>" alt="Превью квеста <%= quest.title %>" />
+          <div>
+            <h2><%= quest.title %></h2>
+            <p><%= quest.short_description %></p>
+            <a href="/quests/<%= quest.id %>">Открыть квест</a>
+          </div>
+        </article>
+      <% }) %>
+    </section>
+  </main>
+</body>
+</html>
