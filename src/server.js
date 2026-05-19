@@ -1,6 +1,6 @@
 const path = require('path');
 const express = require('express');
-const { all, get, run, initDb } = require('./db/database');
+const { all, get, run, initDb, withTransaction } = require('./db/database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,6 +10,13 @@ app.set('views', path.join(__dirname, 'views'));
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use((req, res, next) => {
+  req.user = {
+    id: req.get('x-user-id') || 'guest',
+    role: req.get('x-user-role') || 'guest'
+  };
+  next();
+});
 
 const LIMITS = {
   eventText: 2000,
@@ -54,6 +61,17 @@ function validateBranchInput(body) {
   }
 
   return { errors, cleaned: { eventText, firstAction, secondAction, imageUrl } };
+}
+
+function canManageQuestContent(user) {
+  return ['creator', 'editor', 'admin'].includes(user.role);
+}
+
+function requireQuestWriteAccess(req, res, next) {
+  if (!canManageQuestContent(req.user)) {
+    return res.status(403).send('Недостаточно прав для создания/редактирования веток квеста.');
+  }
+  next();
 }
 
 app.get('/', (req, res) => {
@@ -160,13 +178,42 @@ app.get('/quests/:questId', async (req, res, next) => {
       [targetLocation.id]
     );
 
-    res.render('quest-play', { quest, currentLocation: targetLocation, actions });
+    const treeNodes = await all(
+      `SELECT id, parent_location_id, created_at
+       FROM location_nodes
+       WHERE quest_id = ?
+       ORDER BY id ASC`,
+      [questId]
+    );
+    const treeActions = await all(
+      `SELECT ao.id, ao.location_node_id, ao.action_text, ao.child_location_id
+       FROM action_options ao
+       JOIN location_nodes ln ON ln.id = ao.location_node_id
+       WHERE ln.quest_id = ?
+       ORDER BY ao.id ASC`,
+      [questId]
+    );
+    const treeUpdatedAtRow = await get(
+      `SELECT MAX(created_at) AS latest_created_at
+       FROM location_nodes
+       WHERE quest_id = ?`,
+      [questId]
+    );
+
+    res.render('quest-play', {
+      quest,
+      currentLocation: targetLocation,
+      actions,
+      treeNodes,
+      treeActions,
+      treeUpdatedAt: treeUpdatedAtRow?.latest_created_at || quest.created_at
+    });
   } catch (error) {
     next(error);
   }
 });
 
-app.post('/quests/:questId/actions/:actionId/choose', async (req, res, next) => {
+app.post('/quests/:questId/actions/:actionId/choose', requireQuestWriteAccess, async (req, res, next) => {
   const { questId, actionId } = req.params;
   try {
     const action = await get(
@@ -196,7 +243,7 @@ app.post('/quests/:questId/actions/:actionId/choose', async (req, res, next) => 
   }
 });
 
-app.post('/quests/:questId/actions/:actionId/branch', async (req, res, next) => {
+app.post('/quests/:questId/actions/:actionId/branch', requireQuestWriteAccess, async (req, res, next) => {
   const { questId, actionId } = req.params;
   const { errors, cleaned } = validateBranchInput(req.body);
 
@@ -226,24 +273,76 @@ app.post('/quests/:questId/actions/:actionId/branch', async (req, res, next) => 
       });
     }
 
-    const newLocation = await run(
-      `INSERT INTO location_nodes (quest_id, event_text, image_url, parent_location_id, author)
-       VALUES (?, ?, ?, ?, ?)`,
-      [questId, cleaned.eventText, cleaned.imageUrl || null, action.location_node_id, 'contributor']
-    );
+    const branchResult = await withTransaction(async () => {
+      const lockedAction = await get(
+        `SELECT ao.id, ao.location_node_id, ao.child_location_id
+         FROM action_options ao
+         JOIN location_nodes ln ON ln.id = ao.location_node_id
+         WHERE ao.id = ? AND ln.quest_id = ?`,
+        [actionId, questId]
+      );
 
-    await run('UPDATE action_options SET child_location_id = ? WHERE id = ?', [newLocation.id, actionId]);
+      if (!lockedAction) {
+        const notFoundError = new Error('ACTION_NOT_FOUND');
+        notFoundError.code = 'ACTION_NOT_FOUND';
+        throw notFoundError;
+      }
+      if (lockedAction.child_location_id) {
+        return { alreadyExistsLocationId: lockedAction.child_location_id };
+      }
 
-    await run(
-      `INSERT INTO action_options (location_node_id, action_text, child_location_id)
-       VALUES (?, ?, NULL), (?, ?, NULL)`,
-      [newLocation.id, cleaned.firstAction, newLocation.id, cleaned.secondAction]
-    );
+      const newLocation = await run(
+        `INSERT INTO location_nodes (quest_id, event_text, image_url, parent_location_id, author)
+         VALUES (?, ?, ?, ?, ?)`,
+        [questId, cleaned.eventText, cleaned.imageUrl || null, lockedAction.location_node_id, req.user.id]
+      );
+
+      const updateResult = await run(
+        'UPDATE action_options SET child_location_id = ? WHERE id = ? AND child_location_id IS NULL',
+        [newLocation.id, actionId]
+      );
+      if (updateResult.changes === 0) {
+        return { alreadyExistsLocationId: (await get('SELECT child_location_id FROM action_options WHERE id = ?', [actionId])).child_location_id };
+      }
+
+      await run(
+        `INSERT INTO action_options (location_node_id, action_text, child_location_id)
+         VALUES (?, ?, NULL), (?, ?, NULL)`,
+        [newLocation.id, cleaned.firstAction, newLocation.id, cleaned.secondAction]
+      );
+
+      return { newLocationId: newLocation.id };
+    });
+
+    if (branchResult.alreadyExistsLocationId) {
+      return res.redirect(`/quests/${questId}?locationId=${branchResult.alreadyExistsLocationId}`);
+    }
 
     return res.render('branch-saved', {
       questId,
-      locationId: newLocation.id
+      locationId: branchResult.newLocationId
     });
+  } catch (error) {
+    if (error.code === 'ACTION_NOT_FOUND') {
+      return res.status(404).send('Выбранное действие не найдено.');
+    }
+    next(error);
+  }
+});
+
+app.get('/quests/:questId/updates', async (req, res, next) => {
+  const { questId } = req.params;
+  const since = req.query.since;
+  try {
+    const row = await get(
+      `SELECT MAX(created_at) AS latest_created_at
+       FROM location_nodes
+       WHERE quest_id = ?`,
+      [questId]
+    );
+    const latest = row?.latest_created_at || null;
+    const hasUpdates = Boolean(since && latest && latest > since);
+    res.json({ latestCreatedAt: latest, hasUpdates });
   } catch (error) {
     next(error);
   }
