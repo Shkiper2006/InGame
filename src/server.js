@@ -34,20 +34,30 @@ app.post('/quests', async (req, res, next) => {
     imageUrl,
     shortDescription,
     rootLocation,
+    rootLocationImage,
     firstAction,
     secondAction
   } = req.body;
 
   try {
     const quest = await run(
-      `INSERT INTO quests (title, image_url, short_description, current_location)
-       VALUES (?, ?, ?, ?)`,
-      [title, imageUrl, shortDescription, rootLocation]
+      `INSERT INTO quests (title, image_url, short_description)
+       VALUES (?, ?, ?)`,
+      [title, imageUrl, shortDescription]
     );
 
+    const locationNode = await run(
+      `INSERT INTO location_nodes (quest_id, event_text, image_url, parent_location_id, author)
+       VALUES (?, ?, ?, ?, ?)`,
+      [quest.id, rootLocation, rootLocationImage || null, null, 'creator']
+    );
+
+    await run('UPDATE quests SET root_location_id = ? WHERE id = ?', [locationNode.id, quest.id]);
+
     await run(
-      'INSERT INTO quest_actions (quest_id, action_text) VALUES (?, ?), (?, ?)',
-      [quest.id, firstAction, quest.id, secondAction]
+      `INSERT INTO action_options (location_node_id, action_text, child_location_id)
+       VALUES (?, ?, NULL), (?, ?, NULL)`,
+      [locationNode.id, firstAction, locationNode.id, secondAction]
     );
 
     res.redirect(`/quests/${quest.id}`);
@@ -61,7 +71,16 @@ app.get('/quests/:questId', async (req, res, next) => {
 
   try {
     const quest = await get(
-      'SELECT id, title, current_location, short_description FROM quests WHERE id = ?',
+      `SELECT q.id, q.title, q.short_description,
+              ln.id AS location_id,
+              ln.event_text,
+              ln.image_url,
+              ln.parent_location_id,
+              ln.author,
+              ln.created_at
+       FROM quests q
+       LEFT JOIN location_nodes ln ON ln.id = q.root_location_id
+       WHERE q.id = ?`,
       [questId]
     );
 
@@ -70,8 +89,11 @@ app.get('/quests/:questId', async (req, res, next) => {
     }
 
     const actions = await all(
-      'SELECT id, action_text FROM quest_actions WHERE quest_id = ? ORDER BY id ASC',
-      [questId]
+      `SELECT id, action_text, child_location_id
+       FROM action_options
+       WHERE location_node_id = ?
+       ORDER BY id ASC`,
+      [quest.location_id]
     );
 
     res.render('quest-play', { quest, actions });
