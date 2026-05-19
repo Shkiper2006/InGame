@@ -10,12 +10,22 @@
   <main class="container">
     <h1><%= quest.title %></h1>
     <p><strong>Кратко:</strong> <%= quest.short_description %></p>
-    <p><strong>Текущая локация:</strong> <%= quest.current_location %></p>
+    <p><strong>Событие:</strong> <%= quest.event_text %></p>
+    <% if (quest.image_url) { %>
+      <img src="<%= quest.image_url %>" alt="Иллюстрация локации" style="max-width: 100%; border-radius: 8px;" />
+    <% } %>
+    <p><strong>Автор локации:</strong> <%= quest.author %></p>
+    <p><strong>Создано:</strong> <%= quest.created_at %></p>
 
     <h2>Что сделать дальше?</h2>
     <div class="actions">
       <% actions.forEach((action) => { %>
-        <button type="button"><%= action.action_text %></button>
+        <button type="button">
+          <%= action.action_text %>
+          <% if (!action.child_location_id) { %>
+            — ветка ещё не создана
+          <% } %>
+        </button>
       <% }) %>
     </div>
 
