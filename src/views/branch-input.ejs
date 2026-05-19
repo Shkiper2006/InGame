@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InGame — Добавить продолжение</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Добавить продолжение ветки</h1>
+
+    <% if (errors.length) { %>
+      <div>
+        <p><strong>Исправьте ошибки:</strong></p>
+        <ul>
+          <% errors.forEach((error) => { %>
+            <li><%= error %></li>
+          <% }) %>
+        </ul>
+      </div>
+    <% } %>
+
+    <form method="post" action="/quests/<%= questId %>/actions/<%= actionId %>/branch">
+      <label for="eventText">Текст продолжения</label>
+      <textarea id="eventText" name="eventText" required maxlength="2000"><%= values.eventText %></textarea>
+
+      <label for="imageUrl">Ссылка на изображение (опционально)</label>
+      <input id="imageUrl" name="imageUrl" type="url" value="<%= values.imageUrl %>" maxlength="2048" />
+
+      <label for="firstAction">Первый вариант действия</label>
+      <input id="firstAction" name="firstAction" type="text" required maxlength="200" value="<%= values.firstAction %>" />
+
+      <label for="secondAction">Второй вариант действия</label>
+      <input id="secondAction" name="secondAction" type="text" required maxlength="200" value="<%= values.secondAction %>" />
+
+      <button type="submit">Сохранить продолжение</button>
+    </form>
+  </main>
+</body>
+</html>

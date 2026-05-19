@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InGame — Ветка сохранена</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Вариант записан и включен в цепочку сюжета.</h1>
+    <form method="get" action="/quests/<%= questId %>">
+      <input type="hidden" name="locationId" value="<%= locationId %>" />
+      <button type="submit">Посмотреть</button>
+    </form>
+  </main>
+</body>
+</html>

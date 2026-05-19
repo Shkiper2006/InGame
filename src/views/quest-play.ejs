@@ -10,22 +10,24 @@
   <main class="container">
     <h1><%= quest.title %></h1>
     <p><strong>Кратко:</strong> <%= quest.short_description %></p>
-    <p><strong>Событие:</strong> <%= quest.event_text %></p>
-    <% if (quest.image_url) { %>
-      <img src="<%= quest.image_url %>" alt="Иллюстрация локации" style="max-width: 100%; border-radius: 8px;" />
+    <p><strong>Событие:</strong> <%= currentLocation.event_text %></p>
+    <% if (currentLocation.image_url) { %>
+      <img src="<%= currentLocation.image_url %>" alt="Иллюстрация локации" style="max-width: 100%; border-radius: 8px;" />
     <% } %>
-    <p><strong>Автор локации:</strong> <%= quest.author %></p>
-    <p><strong>Создано:</strong> <%= quest.created_at %></p>
+    <p><strong>Автор локации:</strong> <%= currentLocation.author %></p>
+    <p><strong>Создано:</strong> <%= currentLocation.created_at %></p>
 
     <h2>Что сделать дальше?</h2>
     <div class="actions">
       <% actions.forEach((action) => { %>
-        <button type="button">
-          <%= action.action_text %>
-          <% if (!action.child_location_id) { %>
-            — ветка ещё не создана
-          <% } %>
-        </button>
+        <form method="post" action="/quests/<%= quest.id %>/actions/<%= action.id %>/choose">
+          <button type="submit">
+            <%= action.action_text %>
+            <% if (!action.child_location_id) { %>
+              — ветка ещё не создана
+            <% } %>
+          </button>
+        </form>
       <% }) %>
     </div>
 
