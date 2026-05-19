@@ -1,0 +1,11 @@
+:root { font-family: Arial, sans-serif; color: #1f2937; }
+body { margin: 0; background: #f3f4f6; }
+.container { max-width: 900px; margin: 0 auto; padding: 24px; }
+.cards { display: grid; gap: 16px; }
+.card { background: #fff; border-radius: 12px; overflow: hidden; display: grid; grid-template-columns: 220px 1fr; }
+.card img { width: 100%; height: 100%; object-fit: cover; }
+.card div { padding: 12px; }
+.links, .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+a, button { background: #2563eb; color: #fff; padding: 10px 14px; border-radius: 8px; text-decoration: none; border: none; cursor: pointer; }
+.form { display: grid; gap: 12px; background: #fff; padding: 16px; border-radius: 10px; }
+input, textarea { width: 100%; box-sizing: border-box; margin-top: 6px; padding: 8px; }

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InGame — <%= quest.title %></title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1><%= quest.title %></h1>
+    <p><strong>Кратко:</strong> <%= quest.short_description %></p>
+    <p><strong>Текущая локация:</strong> <%= quest.current_location %></p>
+
+    <h2>Что сделать дальше?</h2>
+    <div class="actions">
+      <% actions.forEach((action) => { %>
+        <button type="button"><%= action.action_text %></button>
+      <% }) %>
+    </div>
+
+    <p><a href="/quests">← Назад к списку</a></p>
+  </main>
+</body>
+</html>

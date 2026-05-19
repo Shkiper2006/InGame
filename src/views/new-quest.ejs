@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InGame — Новый квест</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Создать квест с нуля</h1>
+    <form method="post" action="/quests" class="form">
+      <label>Название
+        <input name="title" required />
+      </label>
+      <label>Ссылка на превью-изображение
+        <input name="imageUrl" type="url" required />
+      </label>
+      <label>Краткое описание
+        <textarea name="shortDescription" rows="3" required></textarea>
+      </label>
+      <label>Корневая локация
+        <textarea name="rootLocation" rows="2" required></textarea>
+      </label>
+      <label>Стартовый вариант №1
+        <input name="firstAction" required />
+      </label>
+      <label>Стартовый вариант №2
+        <input name="secondAction" required />
+      </label>
+      <button type="submit">Создать квест</button>
+    </form>
+
+    <p><a href="/quests">← К списку квестов</a></p>
+  </main>
+</body>
+</html>
