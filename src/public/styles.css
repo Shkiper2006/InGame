@@ -7,5 +7,8 @@ body { margin: 0; background: #f3f4f6; }
 .card div { padding: 12px; }
 .links, .actions { display: flex; gap: 12px; flex-wrap: wrap; }
 a, button { background: #2563eb; color: #fff; padding: 10px 14px; border-radius: 8px; text-decoration: none; border: none; cursor: pointer; }
+a[aria-disabled="true"], button:disabled { background: #94a3b8; cursor: not-allowed; }
 .form { display: grid; gap: 12px; background: #fff; padding: 16px; border-radius: 10px; }
 input, textarea { width: 100%; box-sizing: border-box; margin-top: 6px; padding: 8px; }
+.nav-controls { display: flex; gap: 12px; margin-bottom: 10px; }
+.hint-text { color: #92400e; background: #fef3c7; padding: 10px 12px; border-radius: 8px; margin: 0 0 12px; }

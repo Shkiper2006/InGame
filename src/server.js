@@ -132,6 +132,7 @@ app.post('/quests', async (req, res, next) => {
 app.get('/quests/:questId', async (req, res, next) => {
   const { questId } = req.params;
   const locationIdFromQuery = req.query.locationId ? Number(req.query.locationId) : null;
+  const navMessage = req.query.navMessage || null;
 
   try {
     const quest = await get(
@@ -167,7 +168,7 @@ app.get('/quests/:questId', async (req, res, next) => {
         );
 
     if (!targetLocation) {
-      return res.status(404).send('Локация не найдена для этого квеста');
+      return res.redirect(`/quests/${questId}?navMessage=invalid-history-location`);
     }
 
     const actions = await all(
@@ -206,7 +207,8 @@ app.get('/quests/:questId', async (req, res, next) => {
       actions,
       treeNodes,
       treeActions,
-      treeUpdatedAt: treeUpdatedAtRow?.latest_created_at || quest.created_at
+      treeUpdatedAt: treeUpdatedAtRow?.latest_created_at || quest.created_at,
+      navMessage
     });
   } catch (error) {
     next(error);

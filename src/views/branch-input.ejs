@@ -8,6 +8,11 @@
 </head>
 <body>
   <main class="container">
+    <div class="nav-controls" data-quest-id="<%= questId %>">
+      <button type="button" class="js-step-back">На шаг назад</button>
+      <button type="button" class="js-restart">Начать заново</button>
+    </div>
+    <p class="hint-text" id="nav-hint" hidden></p>
     <h1>Добавить продолжение ветки</h1>
 
     <% if (errors.length) { %>
@@ -21,7 +26,7 @@
       </div>
     <% } %>
 
-    <form method="post" action="/quests/<%= questId %>/actions/<%= actionId %>/branch">
+    <form id="branch-form" method="post" action="/quests/<%= questId %>/actions/<%= actionId %>/branch">
       <label for="eventText">Текст продолжения</label>
       <textarea id="eventText" name="eventText" required maxlength="2000"><%= values.eventText %></textarea>
 
@@ -37,5 +42,62 @@
       <button type="submit">Сохранить продолжение</button>
     </form>
   </main>
+  <script>
+    (function setupFormNavigationGuards() {
+      const questId = <%= Number(questId) %>;
+      const form = document.getElementById('branch-form');
+      const hint = document.getElementById('nav-hint');
+      const stepBackButton = document.querySelector('.js-step-back');
+      const restartButton = document.querySelector('.js-restart');
+      const historyKey = `quest-nav-history:${questId}`;
+      let isSubmitting = false;
+
+      function showHint(text) {
+        if (!hint) return;
+        hint.hidden = false;
+        hint.textContent = text;
+      }
+      function readHistory() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(historyKey) || '[]');
+          return Array.isArray(parsed) ? parsed.filter((id) => Number.isInteger(id)) : [];
+        } catch (e) {
+          return [];
+        }
+      }
+      function hasUnsavedChanges() {
+        return form && Array.from(form.elements).some((el) => ['INPUT', 'TEXTAREA'].includes(el.tagName) && el.type !== 'submit' && el.value.trim() !== '');
+      }
+      function shouldLeave() {
+        return !hasUnsavedChanges() || window.confirm('У вас есть незавершённый ввод. Перейти без сохранения?');
+      }
+
+      if (form) {
+        form.addEventListener('submit', () => { isSubmitting = true; });
+      }
+      window.addEventListener('beforeunload', (event) => {
+        if (!isSubmitting && hasUnsavedChanges()) {
+          event.preventDefault();
+          event.returnValue = '';
+        }
+      });
+
+      stepBackButton.addEventListener('click', () => {
+        const history = readHistory();
+        if (history.length <= 1) {
+          showHint('Предыдущий шаг отсутствует.');
+          return;
+        }
+        if (!shouldLeave()) return;
+        history.pop();
+        window.location.href = `/quests/${questId}?locationId=${history[history.length - 1]}`;
+      });
+
+      restartButton.addEventListener('click', () => {
+        if (!shouldLeave()) return;
+        window.location.href = `/quests/${questId}`;
+      });
+    })();
+  </script>
 </body>
 </html>
