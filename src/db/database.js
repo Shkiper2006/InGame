@@ -110,13 +110,14 @@ async function initDb() {
   await run('CREATE INDEX IF NOT EXISTS idx_location_nodes_created_at ON location_nodes (created_at)');
   await run('CREATE UNIQUE INDEX IF NOT EXISTS idx_action_options_location_action_text_unique ON action_options (location_node_id, action_text)');
 
-  const countRow = await get('SELECT COUNT(*) as count FROM quests');
-  if (countRow.count === 0) {
+  const stormArchiveQuestTitle = 'Архив Штормового Сердца';
+  const existingStormArchiveQuest = await get('SELECT id FROM quests WHERE title = ? LIMIT 1', [stormArchiveQuestTitle]);
+  if (!existingStormArchiveQuest) {
     const seedQuest = await run(
       `INSERT INTO quests (title, image_url, short_description)
        VALUES (?, ?, ?)`,
       [
-        'Архив Штормового Сердца',
+        stormArchiveQuestTitle,
         'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=900&q=80',
         'Курьер с живой картой отправляется в небесный город, чтобы остановить шторм, пожирающий память мира.'
       ]
