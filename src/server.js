@@ -12,9 +12,14 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use((req, res, next) => {
+  const headerUserId = req.get('x-user-id');
+  const headerRole = req.get('x-user-role');
+
   req.user = {
-    id: req.get('x-user-id') || 'guest',
-    role: req.get('x-user-role') || 'guest'
+    id: headerUserId || 'local-creator',
+    // Для локального запуска без авторизации даём роль создателя,
+    // чтобы ветвление квеста работало из браузера без дополнительных заголовков.
+    role: headerRole || 'creator'
   };
   next();
 });
