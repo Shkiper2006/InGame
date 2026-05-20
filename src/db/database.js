@@ -116,26 +116,26 @@ async function initDb() {
       `INSERT INTO quests (title, image_url, short_description)
        VALUES (?, ?, ?)`,
       [
-        'Тайна Лунного Леса',
-        'https://images.unsplash.com/photo-1511497584788-876760111969?auto=format&fit=crop&w=900&q=80',
-        'Герою нужно найти источник странного сияния в лесу.'
+        'Архив Штормового Сердца',
+        'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=900&q=80',
+        'Курьер с живой картой отправляется в небесный город, чтобы остановить шторм, пожирающий память мира.'
       ]
     );
 
     const rootLocation = await run(
       `INSERT INTO location_nodes (quest_id, event_text, image_url, parent_location_id, author)
        VALUES (?, ?, ?, ?, ?)`,
-      [seedQuest.id, 'Вы стоите у старых ворот леса. Лунное сияние пульсирует, будто зовёт дальше.', null, null, 'system']
+      [seedQuest.id, 'Ночной экспресс дирижаблей глохнет над городом Лиор. В ваших руках — живая карта Нейра, и на ней горит запретная метка: «Архив Штормового Сердца открыт».', null, null, 'system']
     );
 
     await run('UPDATE quests SET root_location_id = ? WHERE id = ?', [rootLocation.id, seedQuest.id]);
 
     const endingTexts = [
-      'Концовка I — Рассвет Хранителя: вы стабилизируете Лунное Сердце и становитесь новым хранителем леса.',
-      'Концовка II — Затухающий Свет: источник спасён, но вы теряете память о своей прошлой жизни.',
-      'Концовка III — Союз Теней: вы объединяете лесных духов и людей, открывая мирный путь.',
-      'Концовка IV — Осколки Луны: печать рушится, лес выживает, но навсегда меняется.',
-      'Концовка V — Вечная Ночь: неверный ритуал запускает цикл тьмы, и история начинается заново.'
+      'Концовка I — Маяк Новой Бури: вы переписываете Сердце, шторм становится источником энергии, а Лиор переживает эпоху света.',
+      'Концовка II — Тихий Архивариус: город спасён, но ваши воспоминания запечатаны в кристалле; вы храните чужие истории, забыв свою.',
+      'Концовка III — Пакт Облаков: люди, механики и кочевники Небесной Гряды объединяются в совет, впервые деля власть и знания.',
+      'Концовка IV — Раскол Неба: вы ломаете контур Сердца; мир выживает, но небо делится на пять климатических королевств.',
+      'Концовка V — Петля Шквала: доверившись голосу из ядра, вы запускаете временную бурю, и утро снова превращается в эту же ночь.'
     ];
 
     const endingNodeIds = [];
@@ -148,18 +148,40 @@ async function initDb() {
       endingNodeIds.push(endingNode.id);
     }
 
-    let previousLayerNodeId = rootLocation.id;
+    const chapterTitles = [
+      'Зов Штормового Сердца',
+      'Галереи Затонувшей Памяти',
+      'Механика Клятв и Ветра',
+      'Война Тихих Башен',
+      'Предел Небесного Архива'
+    ];
+    const motifByAct = [
+      'голоса уличных маяков',
+      'пыль стеклянных манускриптов',
+      'искра в медных жилах города',
+      'тени от парящих крепостей',
+      'эхо работающего ядра'
+    ];
+
     let previousLayerActionIds = [];
+    let branchAnchorA = rootLocation.id;
+    let branchAnchorB = rootLocation.id;
 
     for (let layer = 1; layer <= 75; layer += 1) {
+      const actIndex = Math.floor((layer - 1) / 15);
+      const chapter = chapterTitles[actIndex];
+      const motif = motifByAct[actIndex];
+      const pressure = (layer % 5) + 1;
+      const nodeParent = layer % 2 === 0 ? branchAnchorA : branchAnchorB;
+
       const eventNode = await run(
         `INSERT INTO location_nodes (quest_id, event_text, image_url, parent_location_id, author)
          VALUES (?, ?, ?, ?, ?)`,
         [
           seedQuest.id,
-          `Слой ${layer}: вы продвигаетесь глубже в Лунный Лес. Текущие решения переплетаются с отголосками прошлых выборов.`,
+          `Узел ${layer}/75 — ${chapter}. Нейра фиксирует ${pressure}-й уровень турбулентности: ${motif}. Вы находите фрагмент правды о том, что шторм питается не молниями, а чужими невысказанными клятвами.`,
           null,
-          previousLayerNodeId,
+          nodeParent,
           'system'
         ]
       );
@@ -169,10 +191,10 @@ async function initDb() {
          VALUES (?, ?, ?), (?, ?, ?)`,
         [
           eventNode.id,
-          `Слой ${layer}: следовать за серебряными огнями`,
+          `Узел ${layer}: принять риск и идти по верхним вантам к ядру`,
           null,
           eventNode.id,
-          `Слой ${layer}: прислушаться к шёпоту из чащи`,
+          `Узел ${layer}: спуститься в сервисные катакомбы и искать скрытый обход`,
           null
         ]
       );
@@ -191,31 +213,26 @@ async function initDb() {
            VALUES (?, ?, ?), (?, ?, ?)`,
           [
             rootLocation.id,
-            'Войти в лес по светящейся тропе',
+            'Довериться Нейре и подняться к Башне Изломанных Компасов',
             eventNode.id,
             rootLocation.id,
-            'Сделать круг и войти через старый мост',
+            'Скрыться от дозорных и войти через грузовые доки облачной станции',
             eventNode.id
           ]
         );
       }
 
       if (previousLayerActionIds.length) {
-        const toCurrentNode = previousLayerActionIds[0];
-        const toCurrentAction = previousLayerActionIds[1];
-        await run('UPDATE action_options SET child_location_id = ? WHERE id IN (?, ?)', [
-          eventNode.id,
-          toCurrentNode,
-          toCurrentAction
-        ]);
+        await run('UPDATE action_options SET child_location_id = ? WHERE id IN (?, ?)', [eventNode.id, previousLayerActionIds[0], previousLayerActionIds[1]]);
       }
 
-      if (layer > 2) {
-        await run('UPDATE action_options SET child_location_id = ? WHERE id = ?', [eventNode.id, previousLayerActionIds[1]]);
-      }
-
-      previousLayerNodeId = eventNode.id;
       previousLayerActionIds = currentLayerActions.map((action) => action.id);
+      if (layer % 3 === 0) {
+        branchAnchorA = eventNode.id;
+      }
+      if (layer % 4 === 0) {
+        branchAnchorB = eventNode.id;
+      }
     }
 
     for (let i = 0; i < previousLayerActionIds.length; i += 1) {
@@ -227,20 +244,20 @@ async function initDb() {
       `INSERT INTO action_options (location_node_id, action_text, child_location_id)
        VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?), (?, ?, ?), (?, ?, ?)`,
       [
-        previousLayerNodeId,
-        'Активировать печать хранителя',
+        branchAnchorA,
+        'Вплести шторм в городскую сеть маяков',
         endingNodeIds[0],
-        previousLayerNodeId,
-        'Принять жертву ради равновесия',
+        branchAnchorA,
+        'Запечатать Сердце ценой собственной памяти',
         endingNodeIds[1],
-        previousLayerNodeId,
-        'Заключить союз людей и духов',
+        branchAnchorA,
+        'Созвать Совет Облаков и разделить власть',
         endingNodeIds[2],
-        previousLayerNodeId,
-        'Разделить силу на осколки',
+        branchAnchorA,
+        'Разбить ядро на пять фрагментов климата',
         endingNodeIds[3],
-        previousLayerNodeId,
-        'Провести запретный ритуал',
+        branchAnchorA,
+        'Принять шёпот ядра и перезапустить ночь',
         endingNodeIds[4]
       ]
     );
